@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, User, Plus, MessageCircle, Menu, X, LogOut, LayoutDashboard } from "lucide-react";
+import { User, Plus, MessageCircle, Menu, X, LogOut, LayoutDashboard, Heart, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,11 +10,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useAdmin";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -47,12 +50,28 @@ const Navbar = () => {
             >
               דף הבית
             </Link>
+            {isAdmin && (
+              <Link 
+                to="/admin" 
+                className="text-muted-foreground hover:text-foreground transition-base font-medium flex items-center gap-1"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                ניהול
+              </Link>
+            )}
           </nav>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
+            
             {user ? (
               <>
+                <Link to="/favorites">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                    <Heart className="h-5 w-5" />
+                  </Button>
+                </Link>
                 <Link to="/messages">
                   <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                     <MessageCircle className="h-5 w-5" />
@@ -69,10 +88,23 @@ const Navbar = () => {
                       <LayoutDashboard className="h-4 w-4 ml-2" />
                       האזור האישי
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/favorites")}>
+                      <Heart className="h-4 w-4 ml-2" />
+                      מועדפים
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/messages")}>
                       <MessageCircle className="h-4 w-4 ml-2" />
                       הודעות
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate("/admin")}>
+                          <ShieldCheck className="h-4 w-4 ml-2" />
+                          ניהול
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                       <LogOut className="h-4 w-4 ml-2" />
@@ -110,14 +142,16 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          <div className="md:hidden flex items-center gap-2">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -141,12 +175,29 @@ const Navbar = () => {
                     האזור האישי
                   </Link>
                   <Link 
+                    to="/favorites" 
+                    className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    מועדפים
+                  </Link>
+                  <Link 
                     to="/messages" 
                     className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     הודעות
                   </Link>
+                  {isAdmin && (
+                    <Link 
+                      to="/admin" 
+                      className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base flex items-center gap-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      ניהול
+                    </Link>
+                  )}
                   <button 
                     className="px-4 py-2 text-right text-destructive hover:bg-muted rounded-lg transition-base"
                     onClick={() => {

@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
-import { MapPin, Heart } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 export interface Product {
   id: string;
@@ -19,8 +18,6 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  const [isFavorite, setIsFavorite] = useState(false);
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("he-IL", {
       style: "currency",
@@ -39,21 +36,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
           {/* Favorite Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-3 left-3 bg-card/80 backdrop-blur-sm hover:bg-card h-9 w-9"
-            onClick={(e) => {
-              e.preventDefault();
-              setIsFavorite(!isFavorite);
-            }}
-          >
-            <Heart
-              className={`h-5 w-5 transition-colors ${
-                isFavorite ? "fill-destructive text-destructive" : "text-muted-foreground"
-              }`}
-            />
-          </Button>
+          <div className="absolute top-3 left-3 bg-card/80 backdrop-blur-sm rounded-md">
+            <FavoriteButton productId={product.id} />
+          </div>
         </div>
       </Link>
 

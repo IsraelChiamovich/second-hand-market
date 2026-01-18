@@ -52,6 +52,35 @@ export type Database = {
           },
         ]
       }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -92,9 +121,13 @@ export type Database = {
           category: Database["public"]["Enums"]["product_category"]
           created_at: string
           description: string | null
+          formatted_address: string | null
           id: string
           images: string[] | null
+          is_featured: boolean | null
+          latitude: number | null
           location: string
+          longitude: number | null
           price: number
           status: Database["public"]["Enums"]["product_status"]
           title: string
@@ -105,9 +138,13 @@ export type Database = {
           category: Database["public"]["Enums"]["product_category"]
           created_at?: string
           description?: string | null
+          formatted_address?: string | null
           id?: string
           images?: string[] | null
+          is_featured?: boolean | null
+          latitude?: number | null
           location: string
+          longitude?: number | null
           price: number
           status?: Database["public"]["Enums"]["product_status"]
           title: string
@@ -118,9 +155,13 @@ export type Database = {
           category?: Database["public"]["Enums"]["product_category"]
           created_at?: string
           description?: string | null
+          formatted_address?: string | null
           id?: string
           images?: string[] | null
+          is_featured?: boolean | null
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           price?: number
           status?: Database["public"]["Enums"]["product_status"]
           title?: string
@@ -159,14 +200,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_admin_stats: { Args: never; Returns: Json }
+      get_products_by_category: {
+        Args: never
+        Returns: {
+          category: string
+          count: number
+        }[]
+      }
+      get_products_per_day: {
+        Args: { days_back?: number }
+        Returns: {
+          count: number
+          date: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       product_category: "furniture" | "electronics" | "home" | "books"
       product_status: "active" | "sold" | "deleted"
     }
@@ -296,6 +380,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       product_category: ["furniture", "electronics", "home", "books"],
       product_status: ["active", "sold", "deleted"],
     },
