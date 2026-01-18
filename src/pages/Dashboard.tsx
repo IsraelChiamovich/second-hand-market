@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, MessageSquare, Plus, Edit, Trash2, Loader2, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProducts, useDeleteProduct } from "@/hooks/useProducts";
+import { useConversations } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -19,11 +20,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ConversationList } from "@/components/chat";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading, signOut } = useAuth();
   const { data: products, isLoading: productsLoading } = useMyProducts();
+  const { data: conversations, isLoading: conversationsLoading } = useConversations();
   const deleteProduct = useDeleteProduct();
 
   const handleDelete = async (id: string) => {
@@ -110,11 +113,11 @@ const Dashboard = () => {
             <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger value="products" className="gap-2">
                 <Package className="h-4 w-4" />
-                המודעות שלי
+                המודעות שלי ({products?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="messages" className="gap-2">
                 <MessageSquare className="h-4 w-4" />
-                הודעות
+                הודעות ({conversations?.length || 0})
               </TabsTrigger>
             </TabsList>
 
@@ -213,15 +216,29 @@ const Dashboard = () => {
 
             {/* Messages */}
             <TabsContent value="messages">
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">אין הודעות</h3>
-                  <p className="text-muted-foreground">
-                    כאשר משתמשים יפנו אליכם, ההודעות יופיעו כאן
-                  </p>
-                </CardContent>
-              </Card>
+              {conversationsLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : conversations && conversations.length > 0 ? (
+                <Card className="overflow-hidden">
+                  <ConversationList
+                    conversations={conversations}
+                    onSelect={(conv) => navigate(`/messages?conversation=${conv.id}`)}
+                    isLoading={false}
+                  />
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">אין הודעות</h3>
+                    <p className="text-muted-foreground">
+                      כאשר משתמשים יפנו אליכם, ההודעות יופיעו כאן
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </div>

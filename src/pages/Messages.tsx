@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,21 +11,22 @@ import type { ConversationWithDetails } from "@/types/database";
 
 const Messages = () => {
   const navigate = useNavigate();
+  const { threadId } = useParams<{ threadId: string }>();
   const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const { data: conversations, isLoading: conversationsLoading } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<ConversationWithDetails | null>(null);
 
-  // Select conversation from URL param
+  // Select conversation from URL param (either from /chat/:threadId or ?conversation=id)
   useEffect(() => {
-    const conversationId = searchParams.get("conversation");
+    const conversationId = threadId || searchParams.get("conversation");
     if (conversationId && conversations) {
       const conv = conversations.find((c) => c.id === conversationId);
       if (conv) {
         setSelectedConversation(conv);
       }
     }
-  }, [searchParams, conversations]);
+  }, [threadId, searchParams, conversations]);
 
   if (authLoading) {
     return (

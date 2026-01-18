@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Twitter } from "lucide-react";
+import SeedDataButton from "@/components/SeedDataButton";
 
 const Footer = () => {
   return (
@@ -29,11 +30,6 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/categories" className="text-muted-foreground hover:text-foreground transition-base text-sm">
-                  קטגוריות
-                </Link>
-              </li>
-              <li>
                 <Link to="/upload" className="text-muted-foreground hover:text-foreground transition-base text-sm">
                   פרסום מודעה
                 </Link>
@@ -41,6 +37,11 @@ const Footer = () => {
               <li>
                 <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-base text-sm">
                   האזור האישי
+                </Link>
+              </li>
+              <li>
+                <Link to="/messages" className="text-muted-foreground hover:text-foreground transition-base text-sm">
+                  הודעות
                 </Link>
               </li>
             </ul>
@@ -110,12 +111,13 @@ const Footer = () => {
           <p className="text-muted-foreground text-sm">
             © {new Date().getFullYear()} שוק יד שנייה. כל הזכויות שמורות.
           </p>
-          <div className="flex gap-6">
-            <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-base text-sm">
-              מדיניות פרטיות
+          <div className="flex items-center gap-6">
+            <SeedDataButton />
+            <Link to="/login" className="text-muted-foreground hover:text-foreground transition-base text-sm">
+              התחברות
             </Link>
-            <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-base text-sm">
-              תנאי שימוש
+            <Link to="/register" className="text-muted-foreground hover:text-foreground transition-base text-sm">
+              הרשמה
             </Link>
           </div>
         </div>
