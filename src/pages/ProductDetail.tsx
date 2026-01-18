@@ -1,16 +1,47 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, User, Phone, MessageCircle, ArrowRight, Loader2 } from "lucide-react";
 import { useProduct } from "@/hooks/useProducts";
+import { useGetOrCreateConversation } from "@/hooks/useMessages";
+import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: product, isLoading, error } = useProduct(id || "");
+  const getOrCreateConversation = useGetOrCreateConversation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const handleContactSeller = async () => {
+    if (!user) {
+      toast.error("יש להתחבר כדי ליצור קשר עם המוכר");
+      navigate("/login");
+      return;
+    }
+
+    if (!product) return;
+
+    // Can't message yourself
+    if (user.id === product.user_id) {
+      toast.error("לא ניתן לשלוח הודעה לעצמך");
+      return;
+    }
+
+    try {
+      const conversation = await getOrCreateConversation.mutateAsync({
+        productId: product.id,
+        sellerId: product.user_id,
+      });
+      navigate(`/messages?conversation=${conversation.id}`);
+    } catch (error: any) {
+      toast.error(error.message || "שגיאה ביצירת שיחה");
+    }
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("he-IL", {
@@ -154,8 +185,17 @@ const ProductDetail = () => {
               </Card>
 
               {/* Contact Button */}
-              <Button size="lg" className="w-full gap-2">
-                <MessageCircle className="h-5 w-5" />
+              <Button 
+                size="lg" 
+                className="w-full gap-2"
+                onClick={handleContactSeller}
+                disabled={getOrCreateConversation.isPending}
+              >
+                {getOrCreateConversation.isPending ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <MessageCircle className="h-5 w-5" />
+                )}
                 יצירת קשר עם המוכר
               </Button>
             </div>

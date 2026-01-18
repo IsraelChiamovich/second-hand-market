@@ -1,10 +1,31 @@
-import { Link } from "react-router-dom";
-import { Search, User, Plus, MessageCircle, Menu, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, User, Plus, MessageCircle, Menu, X, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("התנתקת בהצלחה");
+      navigate("/");
+    } catch (error) {
+      toast.error("שגיאה בהתנתקות");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-card border-b border-border">
@@ -26,33 +47,66 @@ const Navbar = () => {
             >
               דף הבית
             </Link>
-            <Link 
-              to="/categories" 
-              className="text-muted-foreground hover:text-foreground transition-base font-medium"
-            >
-              קטגוריות
-            </Link>
           </nav>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-              <Search className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-              <MessageCircle className="h-5 w-5" />
-            </Button>
-            <Link to="/login">
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
-            <Link to="/upload">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                פרסום מודעה
-              </Button>
-            </Link>
+            {user ? (
+              <>
+                <Link to="/messages">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                    <MessageCircle className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                      <LayoutDashboard className="h-4 w-4 ml-2" />
+                      האזור האישי
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/messages")}>
+                      <MessageCircle className="h-4 w-4 ml-2" />
+                      הודעות
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                      <LogOut className="h-4 w-4 ml-2" />
+                      התנתקות
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Link to="/upload">
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    פרסום מודעה
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                    התחברות
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="outline">
+                    הרשמה
+                  </Button>
+                </Link>
+                <Link to="/upload">
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    פרסום מודעה
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -77,27 +131,50 @@ const Navbar = () => {
               >
                 דף הבית
               </Link>
-              <Link 
-                to="/categories" 
-                className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                קטגוריות
-              </Link>
-              <Link 
-                to="/messages" 
-                className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                הודעות
-              </Link>
-              <Link 
-                to="/login" 
-                className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                התחברות
-              </Link>
+              {user ? (
+                <>
+                  <Link 
+                    to="/dashboard" 
+                    className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    האזור האישי
+                  </Link>
+                  <Link 
+                    to="/messages" 
+                    className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    הודעות
+                  </Link>
+                  <button 
+                    className="px-4 py-2 text-right text-destructive hover:bg-muted rounded-lg transition-base"
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    התנתקות
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/login" 
+                    className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    התחברות
+                  </Link>
+                  <Link 
+                    to="/register" 
+                    className="px-4 py-2 text-foreground hover:bg-muted rounded-lg transition-base"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    הרשמה
+                  </Link>
+                </>
+              )}
               <Link to="/upload" onClick={() => setIsMobileMenuOpen(false)}>
                 <Button className="w-full gap-2 mt-2">
                   <Plus className="h-4 w-4" />
