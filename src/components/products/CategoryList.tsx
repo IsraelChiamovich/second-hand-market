@@ -1,21 +1,23 @@
 import { Link } from "react-router-dom";
 import { Sofa, Laptop, Home, BookOpen, LucideIcon } from "lucide-react";
+import { useCategoryCounts } from "@/hooks/useProducts";
 
 interface Category {
   id: string;
   name: string;
   icon: LucideIcon;
-  count: number;
 }
 
 const categories: Category[] = [
-  { id: "furniture", name: "ריהוט", icon: Sofa, count: 234 },
-  { id: "electronics", name: "אלקטרוניקה", icon: Laptop, count: 189 },
-  { id: "home", name: "לבית", icon: Home, count: 156 },
-  { id: "books", name: "ספרים", icon: BookOpen, count: 312 },
+  { id: "furniture", name: "ריהוט", icon: Sofa },
+  { id: "electronics", name: "אלקטרוניקה", icon: Laptop },
+  { id: "home", name: "לבית", icon: Home },
+  { id: "books", name: "ספרים", icon: BookOpen },
 ];
 
 const CategoryList = () => {
+  const { data: counts, isLoading } = useCategoryCounts();
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {categories.map((category) => (
@@ -30,7 +32,7 @@ const CategoryList = () => {
             </div>
             <h3 className="font-semibold text-foreground mb-1">{category.name}</h3>
             <span className="text-sm text-muted-foreground">
-              {category.count} מוצרים
+              {isLoading ? "..." : `${counts?.[category.id] || 0} מוצרים`}
             </span>
           </div>
         </Link>
