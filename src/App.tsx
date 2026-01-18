@@ -10,6 +10,8 @@ import Register from "./pages/Register";
 import Upload from "./pages/Upload";
 import ProductDetail from "./pages/ProductDetail";
 import Dashboard from "./pages/Dashboard";
+import Messages from "./pages/Messages";
+import EditProduct from "./pages/EditProduct";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +29,9 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/upload" element={<Upload />} />
             <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/edit/:id" element={<EditProduct />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/messages" element={<Messages />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

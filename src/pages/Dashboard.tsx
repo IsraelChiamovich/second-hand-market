@@ -161,7 +161,7 @@ const Dashboard = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => navigate(`/product/${product.id}`)}
+                              onClick={() => navigate(`/edit/${product.id}`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
