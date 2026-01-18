@@ -8,10 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SearchBarProps {
   onSearch?: (filters: SearchFilters) => void;
+  initialFilters?: Partial<SearchFilters>;
+  hideCategorySelect?: boolean;
 }
 
 export interface SearchFilters {
@@ -38,12 +40,22 @@ const locations = [
   { value: "rishon", label: "ראשון לציון" },
 ];
 
-const SearchBar = ({ onSearch }: SearchBarProps) => {
+const SearchBar = ({ onSearch, initialFilters, hideCategorySelect }: SearchBarProps) => {
   const [filters, setFilters] = useState<SearchFilters>({
-    keyword: "",
-    category: "all",
-    location: "all",
+    keyword: initialFilters?.keyword || "",
+    category: initialFilters?.category || "all",
+    location: initialFilters?.location || "all",
   });
+
+  // Update filters when initialFilters change
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters(prev => ({
+        ...prev,
+        ...initialFilters,
+      }));
+    }
+  }, [initialFilters?.category, initialFilters?.keyword, initialFilters?.location]);
 
   const handleSearch = () => {
     onSearch?.(filters);
@@ -70,22 +82,24 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           />
         </div>
 
-        {/* Category Select */}
-        <Select
-          value={filters.category}
-          onValueChange={(value) => setFilters({ ...filters, category: value })}
-        >
-          <SelectTrigger className="w-full md:w-44 h-12">
-            <SelectValue placeholder="קטגוריה" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((cat) => (
-              <SelectItem key={cat.value} value={cat.value}>
-                {cat.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Category Select - Hide on category pages */}
+        {!hideCategorySelect && (
+          <Select
+            value={filters.category}
+            onValueChange={(value) => setFilters({ ...filters, category: value })}
+          >
+            <SelectTrigger className="w-full md:w-44 h-12">
+              <SelectValue placeholder="קטגוריה" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Location Select */}
         <Select
