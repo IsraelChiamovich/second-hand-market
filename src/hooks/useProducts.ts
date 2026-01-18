@@ -14,12 +14,13 @@ export const useProducts = (filters?: ProductFilters) => {
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select("*, profiles(full_name, phone)")
+        .select("*")
         .eq("status", "active")
         .order("created_at", { ascending: false });
 
       if (filters?.keyword) {
-        query = query.ilike("title", `%${filters.keyword}%`);
+        // Search in both title and description
+        query = query.or(`title.ilike.%${filters.keyword}%,description.ilike.%${filters.keyword}%`);
       }
       if (filters?.category && filters.category !== "all") {
         query = query.eq("category", filters.category as "furniture" | "electronics" | "home" | "books");
@@ -34,7 +35,12 @@ export const useProducts = (filters?: ProductFilters) => {
           "netanya": "נתניה",
           "rishon": "ראשון לציון",
         };
-        query = query.eq("location", locationMap[filters.location] || filters.location);
+        const hebrewLocation = locationMap[filters.location];
+        if (hebrewLocation) {
+          query = query.ilike("location", `%${hebrewLocation}%`);
+        } else {
+          query = query.ilike("location", `%${filters.location}%`);
+        }
       }
 
       const { data, error } = await query;
@@ -48,16 +54,55 @@ export const useProduct = (id: string) => {
   return useQuery({
     queryKey: ["product", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get the product
+      const { data: product, error: productError } = await supabase
         .from("products")
-        .select("*, profiles(full_name, phone, avatar_url)")
+        .select("*")
         .eq("id", id)
         .maybeSingle();
       
-      if (error) throw error;
-      return data;
+      if (productError) throw productError;
+      if (!product) return null;
+
+      // Then get the seller profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone, avatar_url")
+        .eq("user_id", product.user_id)
+        .maybeSingle();
+
+      return {
+        ...product,
+        profiles: profile || { full_name: null, phone: null, avatar_url: null }
+      };
     },
     enabled: !!id,
+  });
+};
+
+// Hook to get category counts for display
+export const useCategoryCounts = () => {
+  return useQuery({
+    queryKey: ["category-counts"],
+    queryFn: async () => {
+      const categories = ["furniture", "electronics", "home", "books"] as const;
+      const counts: Record<string, number> = {};
+      
+      for (const category of categories) {
+        const { count, error } = await supabase
+          .from("products")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "active")
+          .eq("category", category);
+        
+        if (!error) {
+          counts[category] = count || 0;
+        }
+      }
+      
+      return counts;
+    },
+    staleTime: 30000, // Cache for 30 seconds
   });
 };
 
