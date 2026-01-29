@@ -2,10 +2,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, User, Phone, MessageCircle, ArrowRight, Loader2 } from "lucide-react";
+import { MapPin, Share2, Heart, MessageCircle, Loader2, ArrowRight } from "lucide-react";
 import { useProduct } from "@/hooks/useProducts";
 import { useGetOrCreateConversation } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
+import { useOffers } from "@/hooks/useOffers";
+import { OfferDialog } from "@/components/products/OfferDialog";
+import { OffersList } from "@/components/products/OffersList";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -15,6 +18,7 @@ const ProductDetail = () => {
   const { user } = useAuth();
   const { data: product, isLoading, error } = useProduct(id || "");
   const getOrCreateConversation = useGetOrCreateConversation();
+  const { data: offers } = useOffers(id);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const handleContactSeller = async () => {
@@ -79,6 +83,7 @@ const ProductDetail = () => {
 
   const images = product.images || [];
   const profile = product.profiles as { full_name?: string; phone?: string; avatar_url?: string } | null;
+  const isOwner = user?.id === product.user_id;
 
   return (
     <Layout>
@@ -167,14 +172,14 @@ const ProductDetail = () => {
                           className="w-full h-full rounded-full object-cover"
                         />
                       ) : (
-                        <User className="h-6 w-6 text-muted-foreground" />
+                        <MessageCircle className="h-6 w-6 text-muted-foreground" />
                       )}
                     </div>
                     <div>
                       <p className="font-medium">{profile?.full_name || "משתמש"}</p>
                       {profile?.phone && (
                         <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
+                          <MessageCircle className="h-3 w-3" />
                           {profile.phone}
                         </p>
                       )}
@@ -183,20 +188,43 @@ const ProductDetail = () => {
                 </CardContent>
               </Card>
 
-              {/* Contact Button */}
-              <Button
-                size="lg"
-                className="w-full gap-2"
-                onClick={handleContactSeller}
-                disabled={getOrCreateConversation.isPending}
-              >
-                {getOrCreateConversation.isPending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <MessageCircle className="h-5 w-5" />
+              {/* Actions */}
+              <div className="flex flex-col gap-3 p-6 border-t border-border mt-auto">
+                <div className="flex gap-3">
+                  <Button 
+                    className="flex-1 gap-2" 
+                    onClick={handleContactSeller}
+                    disabled={isOwner || getOrCreateConversation.isPending}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    {isOwner ? "זהו המוצר שלך" : "יצירת קשר"}
+                  </Button>
+                  
+                  {product && !isOwner && (
+                    <OfferDialog
+                      productId={product.id}
+                      sellerId={product.user_id}
+                      productPrice={product.price}
+                      productTitle={product.title}
+                    />
+                  )}
+
+                  <Button variant="outline" size="icon">
+                    <Heart className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* Offers List */}
+                {offers && (isOwner || offers.some(o => o.buyer_id === user?.id)) && (
+                  <OffersList 
+                    offers={isOwner ? offers : offers.filter(o => o.buyer_id === user?.id)} 
+                    isSeller={isOwner} 
+                  />
                 )}
-                יצירת קשר עם המוכר
-              </Button>
+              </div>
             </div>
           </div>
         </div>

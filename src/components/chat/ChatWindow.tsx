@@ -31,7 +31,10 @@ const ChatWindow = ({ conversation, onBack }: ChatWindowProps) => {
 
   // Scroll to bottom function
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+    if (messagesContainerRef.current) {
+      const { scrollHeight, clientHeight } = messagesContainerRef.current;
+      messagesContainerRef.current.scrollTop = scrollHeight - clientHeight;
+    }
   };
 
   // Scroll to bottom when messages change or on initial load

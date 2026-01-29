@@ -13,11 +13,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
+import { useUnreadCount } from "@/hooks/useUnreadCount";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { data: isAdmin } = useIsAdmin();
+  const { unreadCount } = useUnreadCount();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -72,9 +74,14 @@ const Navbar = () => {
                     <Heart className="h-5 w-5" />
                   </Button>
                 </Link>
-                <Link to="/messages">
+                <Link to="/messages" className="relative">
                   <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                     <MessageCircle className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
                   </Button>
                 </Link>
                 <DropdownMenu>
@@ -187,6 +194,11 @@ const Navbar = () => {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     הודעות
+                    {unreadCount > 0 && (
+                      <span className="bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full mr-2">
+                        {unreadCount}
+                      </span>
+                    )}
                   </Link>
                   {isAdmin && (
                     <Link 

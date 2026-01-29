@@ -17,6 +17,7 @@ import Category from "./pages/Category";
 import Admin from "./pages/Admin";
 import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
+import { NotificationManager } from "./components/NotificationManager";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <NotificationManager />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
