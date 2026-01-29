@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { MapPin, Search, X } from "lucide-react";
+import { MapPin, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 
-interface LocationData {
+export interface LocationData {
   formattedAddress: string;
   city: string;
   lat: number;
@@ -18,30 +18,39 @@ interface LocationPickerProps {
   className?: string;
 }
 
-// Predefined Israeli cities with coordinates
-const ISRAELI_CITIES = [
-  { name: "תל אביב", lat: 32.0853, lng: 34.7818 },
-  { name: "ירושלים", lat: 31.7683, lng: 35.2137 },
-  { name: "חיפה", lat: 32.7940, lng: 34.9896 },
-  { name: "באר שבע", lat: 31.2530, lng: 34.7915 },
-  { name: "נתניה", lat: 32.3286, lng: 34.8569 },
-  { name: "ראשון לציון", lat: 31.9730, lng: 34.7925 },
-  { name: "פתח תקווה", lat: 32.0841, lng: 34.8878 },
-  { name: "אשדוד", lat: 31.8044, lng: 34.6553 },
-  { name: "הרצליה", lat: 32.1656, lng: 34.8467 },
-  { name: "רמת גן", lat: 32.0680, lng: 34.8248 },
-  { name: "בת ים", lat: 32.0231, lng: 34.7505 },
-  { name: "אילת", lat: 29.5577, lng: 34.9519 },
-  { name: "רחובות", lat: 31.8928, lng: 34.8113 },
-  { name: "כפר סבא", lat: 32.1780, lng: 34.9065 },
-  { name: "מודיעין", lat: 31.8970, lng: 35.0104 },
+type NominatimResult = {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    city?: string;
+    town?: string;
+    village?: string;
+    municipality?: string;
+    state?: string;
+    county?: string;
+    road?: string;
+  };
+};
+
+const POPULAR_CITIES: Array<Omit<LocationData, "formattedAddress"> & { name: string }> = [
+  { name: "תל אביב", city: "תל אביב", lat: 32.0853, lng: 34.7818 },
+  { name: "ירושלים", city: "ירושלים", lat: 31.7683, lng: 35.2137 },
+  { name: "חיפה", city: "חיפה", lat: 32.794, lng: 34.9896 },
+  { name: "באר שבע", city: "באר שבע", lat: 31.253, lng: 34.7915 },
+  { name: "נתניה", city: "נתניה", lat: 32.3286, lng: 34.8569 },
+  { name: "ראשון לציון", city: "ראשון לציון", lat: 31.973, lng: 34.7925 },
 ];
+
+const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 
 export function LocationPicker({ value, onChange, className }: LocationPickerProps) {
   const [searchQuery, setSearchQuery] = useState(value?.formattedAddress || "");
-  const [suggestions, setSuggestions] = useState<typeof ISRAELI_CITIES>([]);
+  const [suggestions, setSuggestions] = useState<LocationData[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(value || null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (value) {
@@ -50,54 +59,124 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
     }
   }, [value]);
 
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-    
-    if (query.length < 1) {
+  const mapResultToLocation = useCallback((result: NominatimResult): LocationData => {
+    const city =
+      result.address?.city ||
+      result.address?.town ||
+      result.address?.village ||
+      result.address?.municipality ||
+      result.address?.state ||
+      result.address?.county ||
+      result.display_name;
+
+    return {
+      formattedAddress: result.display_name,
+      city,
+      lat: parseFloat(result.lat),
+      lng: parseFloat(result.lon),
+    };
+  }, []);
+
+  const fetchSuggestions = useCallback(
+    async (query: string, controller: AbortController) => {
+      setIsSearching(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams({
+          q: query,
+          format: "jsonv2",
+          addressdetails: "1",
+          limit: "6",
+          countrycodes: "il",
+        });
+
+        const response = await fetch(`${NOMINATIM_ENDPOINT}?${params.toString()}`, {
+          signal: controller.signal,
+          headers: {
+            "Accept-Language": "he",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch location suggestions");
+        }
+
+        const data = (await response.json()) as NominatimResult[];
+        const mapped = data.map(mapResultToLocation);
+        setSuggestions(mapped);
+        setShowSuggestions(true);
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          console.error(err);
+          setError("לא הצלחנו להביא תוצאות כרגע. נסה שוב.");
+        }
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [mapResultToLocation]
+  );
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q || q.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
+      setError(null);
       return;
     }
 
-    const filtered = ISRAELI_CITIES.filter(city =>
-      city.name.includes(query)
-    );
-    setSuggestions(filtered);
-    setShowSuggestions(true);
-  }, []);
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      fetchSuggestions(q, controller);
+    }, 350);
 
-  const selectCity = (city: typeof ISRAELI_CITIES[0]) => {
-    const location: LocationData = {
-      formattedAddress: city.name,
-      city: city.name,
-      lat: city.lat,
-      lng: city.lng,
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
     };
+  }, [searchQuery, fetchSuggestions]);
+
+  const selectLocation = (location: LocationData) => {
     setSelectedLocation(location);
-    setSearchQuery(city.name);
+    setSearchQuery(location.formattedAddress);
     setShowSuggestions(false);
     onChange(location);
+  };
+
+  const selectCity = (city: (typeof POPULAR_CITIES)[number]) => {
+    selectLocation({
+      formattedAddress: city.name,
+      city: city.city,
+      lat: city.lat,
+      lng: city.lng,
+    });
   };
 
   const clearSelection = () => {
     setSelectedLocation(null);
     setSearchQuery("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setError(null);
     onChange({ formattedAddress: "", city: "", lat: 0, lng: 0 });
   };
 
   return (
     <div className={className}>
       <Label className="mb-2 block">מיקום</Label>
-      
+
       <div className="relative">
         <div className="relative">
           <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="חפש עיר..."
+            placeholder="חפש כתובת או עיר..."
             value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            onFocus={() => searchQuery && setSuggestions.length > 0 && setShowSuggestions(true)}
+            autoComplete="off"
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
             className="pr-10 pl-10"
           />
           {selectedLocation && (
@@ -107,53 +186,58 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
               size="icon"
               className="absolute left-1 top-1/2 -translate-y-1/2 h-8 w-8"
               onClick={clearSelection}
+              aria-label="נקה בחירה"
             >
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
 
-        {/* Suggestions dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <Card className="absolute z-50 w-full mt-1 max-h-60 overflow-auto">
-            {suggestions.map((city) => (
-              <button
-                key={city.name}
-                type="button"
-                className="w-full px-4 py-3 text-right hover:bg-muted transition-colors flex items-center gap-2"
-                onClick={() => selectCity(city)}
-              >
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{city.name}</span>
-              </button>
-            ))}
-          </Card>
-        )}
+        {showSuggestions && (
+          <Card className="absolute z-50 w-full mt-1 max-h-64 overflow-auto">
+            {isSearching && (
+              <div className="px-4 py-3 flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                מחפש תוצאות...
+              </div>
+            )}
 
-        {/* Show all cities when no search */}
-        {showSuggestions && searchQuery.length === 0 && (
-          <Card className="absolute z-50 w-full mt-1 max-h-60 overflow-auto">
-            {ISRAELI_CITIES.map((city) => (
-              <button
-                key={city.name}
-                type="button"
-                className="w-full px-4 py-3 text-right hover:bg-muted transition-colors flex items-center gap-2"
-                onClick={() => selectCity(city)}
-              >
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{city.name}</span>
-              </button>
-            ))}
+            {!isSearching && suggestions.length === 0 && searchQuery.trim().length >= 2 && !error && (
+              <div className="px-4 py-3 text-muted-foreground text-sm">לא נמצאו תוצאות מתאימות</div>
+            )}
+
+            {!isSearching &&
+              suggestions.map((location) => (
+                <button
+                  key={`${location.formattedAddress}-${location.lat}-${location.lng}`}
+                  type="button"
+                  className="w-full px-4 py-3 text-right hover:bg-muted transition-colors flex flex-col items-start gap-1"
+                  onClick={() => selectLocation(location)}
+                >
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-sm">{location.city}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground line-clamp-2 text-left w-full">
+                    {location.formattedAddress}
+                  </span>
+                </button>
+              ))}
+
+            {error && <div className="px-4 py-3 text-destructive text-sm">{error}</div>}
           </Card>
         )}
       </div>
 
-      {/* Mini map preview */}
       {selectedLocation && selectedLocation.lat !== 0 && (
         <div className="mt-3 rounded-lg overflow-hidden border border-border">
           <div className="relative h-32 bg-muted">
             <iframe
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedLocation.lng - 0.02},${selectedLocation.lat - 0.01},${selectedLocation.lng + 0.02},${selectedLocation.lat + 0.01}&layer=mapnik&marker=${selectedLocation.lat},${selectedLocation.lng}`}
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                selectedLocation.lng - 0.02
+              },${selectedLocation.lat - 0.01},${selectedLocation.lng + 0.02},${
+                selectedLocation.lat + 0.01
+              }&layer=mapnik&marker=${selectedLocation.lat},${selectedLocation.lng}`}
               className="w-full h-full border-0"
               title="מפת מיקום"
             />
@@ -165,13 +249,12 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
         </div>
       )}
 
-      {/* Quick city buttons */}
       <div className="mt-3 flex flex-wrap gap-2">
-        {ISRAELI_CITIES.slice(0, 6).map((city) => (
+        {POPULAR_CITIES.map((city) => (
           <Button
             key={city.name}
             type="button"
-            variant={selectedLocation?.city === city.name ? "default" : "outline"}
+            variant={selectedLocation?.city === city.city ? "default" : "outline"}
             size="sm"
             onClick={() => selectCity(city)}
           >
@@ -179,6 +262,10 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
           </Button>
         ))}
       </div>
+
+      <p className="mt-2 text-xs text-muted-foreground text-right">
+        החיפוש מתבצע באמצעות OpenStreetMap (Nominatim).
+      </p>
     </div>
   );
 }

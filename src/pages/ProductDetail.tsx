@@ -117,11 +117,10 @@ const ProductDetail = () => {
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                        index === currentImageIndex
-                          ? "border-primary"
-                          : "border-transparent hover:border-border"
-                      }`}
+                      className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${index === currentImageIndex
+                        ? "border-primary"
+                        : "border-transparent hover:border-border"
+                        }`}
                     >
                       <img src={img} alt={`תמונה ${index + 1}`} className="w-full h-full object-cover" />
                     </button>
@@ -138,7 +137,7 @@ const ProductDetail = () => {
                 </h1>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <MapPin className="h-4 w-4" />
-                  <span>{product.location}</span>
+                  <span>{product.formatted_address || product.location}</span>
                 </div>
               </div>
 
@@ -185,8 +184,8 @@ const ProductDetail = () => {
               </Card>
 
               {/* Contact Button */}
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="w-full gap-2"
                 onClick={handleContactSeller}
                 disabled={getOrCreateConversation.isPending}

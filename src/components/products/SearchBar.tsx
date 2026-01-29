@@ -1,4 +1,5 @@
 import { Search, MapPin } from "lucide-react";
+import { useLocations } from "@/hooks/useProducts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,17 +31,9 @@ const categories = [
   { value: "books", label: "ספרים" },
 ];
 
-const locations = [
-  { value: "all", label: "כל הארץ" },
-  { value: "tel-aviv", label: "תל אביב" },
-  { value: "jerusalem", label: "ירושלים" },
-  { value: "haifa", label: "חיפה" },
-  { value: "beer-sheva", label: "באר שבע" },
-  { value: "netanya", label: "נתניה" },
-  { value: "rishon", label: "ראשון לציון" },
-];
-
+// locations removed - fetched dynamically
 const SearchBar = ({ onSearch, initialFilters, hideCategorySelect }: SearchBarProps) => {
+  const { data: locations } = useLocations();
   const [filters, setFilters] = useState<SearchFilters>({
     keyword: initialFilters?.keyword || "",
     category: initialFilters?.category || "all",
@@ -101,7 +94,6 @@ const SearchBar = ({ onSearch, initialFilters, hideCategorySelect }: SearchBarPr
           </Select>
         )}
 
-        {/* Location Select */}
         <Select
           value={filters.location}
           onValueChange={(value) => setFilters({ ...filters, location: value })}
@@ -113,9 +105,10 @@ const SearchBar = ({ onSearch, initialFilters, hideCategorySelect }: SearchBarPr
             </div>
           </SelectTrigger>
           <SelectContent>
-            {locations.map((loc) => (
-              <SelectItem key={loc.value} value={loc.value}>
-                {loc.label}
+            <SelectItem value="all">כל הארץ</SelectItem>
+            {locations?.map((loc) => (
+              <SelectItem key={loc} value={loc}>
+                {loc}
               </SelectItem>
             ))}
           </SelectContent>

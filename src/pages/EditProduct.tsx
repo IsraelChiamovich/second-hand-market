@@ -19,21 +19,13 @@ import { useProduct, useUpdateProduct } from "@/hooks/useProducts";
 import { uploadProductImage, deleteProductImage } from "@/lib/storage";
 import { toast } from "sonner";
 import type { ProductCategory } from "@/types/database";
+import { LocationPicker, LocationData } from "@/components/LocationPicker";
 
 const categories = [
   { value: "furniture", label: "ריהוט" },
   { value: "electronics", label: "אלקטרוניקה" },
   { value: "home", label: "לבית" },
   { value: "books", label: "ספרים" },
-];
-
-const locations = [
-  { value: "תל אביב", label: "תל אביב" },
-  { value: "ירושלים", label: "ירושלים" },
-  { value: "חיפה", label: "חיפה" },
-  { value: "באר שבע", label: "באר שבע" },
-  { value: "נתניה", label: "נתניה" },
-  { value: "ראשון לציון", label: "ראשון לציון" },
 ];
 
 const statusOptions = [
@@ -53,10 +45,10 @@ const EditProduct = () => {
     category: "" as ProductCategory | "",
     price: "",
     description: "",
-    location: "",
     status: "active" as "active" | "sold",
   });
 
+  const [locationData, setLocationData] = useState<LocationData | null>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
@@ -70,8 +62,13 @@ const EditProduct = () => {
         category: product.category,
         price: product.price.toString(),
         description: product.description || "",
-        location: product.location,
         status: product.status as "active" | "sold",
+      });
+      setLocationData({
+        formattedAddress: product.formatted_address || product.location,
+        city: product.location,
+        lat: product.latitude || 0,
+        lng: product.longitude || 0,
       });
       setExistingImages(product.images || []);
     }
@@ -112,7 +109,7 @@ const EditProduct = () => {
       return;
     }
 
-    if (!formData.location) {
+    if (!locationData || !locationData.formattedAddress) {
       toast.error("יש לבחור מיקום");
       return;
     }
@@ -141,7 +138,10 @@ const EditProduct = () => {
         description: formData.description || null,
         price: parseFloat(formData.price),
         category: formData.category as ProductCategory,
-        location: formData.location,
+        location: locationData.city || locationData.formattedAddress,
+        formatted_address: locationData.formattedAddress,
+        latitude: locationData.lat,
+        longitude: locationData.lng,
         status: formData.status,
         images: allImages,
       });
@@ -340,24 +340,11 @@ const EditProduct = () => {
                 </div>
 
                 {/* Location */}
-                <div className="space-y-2">
-                  <Label>מיקום</Label>
-                  <Select
-                    value={formData.location}
-                    onValueChange={(value) => setFormData({ ...formData, location: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="בחרו מיקום" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc.value} value={loc.value}>
-                          {loc.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <LocationPicker
+                  className="space-y-2"
+                  value={locationData || undefined}
+                  onChange={setLocationData}
+                />
 
                 {/* Status */}
                 <div className="space-y-2">

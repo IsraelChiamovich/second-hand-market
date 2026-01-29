@@ -27,20 +27,7 @@ export const useProducts = (filters?: ProductFilters) => {
       }
 
       if (filters?.location && filters.location !== "all") {
-        const locationMap: Record<string, string> = {
-          "tel-aviv": "תל אביב",
-          "jerusalem": "ירושלים",
-          "haifa": "חיפה",
-          "beer-sheva": "באר שבע",
-          "netanya": "נתניה",
-          "rishon": "ראשון לציון",
-        };
-        const hebrewLocation = locationMap[filters.location];
-        if (hebrewLocation) {
-          query = query.ilike("location", `%${hebrewLocation}%`);
-        } else {
-          query = query.ilike("location", `%${filters.location}%`);
-        }
+        query = query.ilike("location", `%${filters.location}%`);
       }
 
       const { data, error } = await query;
@@ -60,7 +47,7 @@ export const useProduct = (id: string) => {
         .select("*")
         .eq("id", id)
         .maybeSingle();
-      
+
       if (productError) throw productError;
       if (!product) return null;
 
@@ -80,6 +67,48 @@ export const useProduct = (id: string) => {
   });
 };
 
+export const useLocations = () => {
+  return useQuery({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("location")
+        .eq("status", "active")
+        .not("location", "is", null);
+
+      if (error) throw error;
+
+      // Get unique locations with basic cleaning
+      const uniqueLocations = Array.from(new Set(data.map(p => {
+        let loc = p.location;
+        if (!loc) return "";
+
+        // Basic heuristic to extract city from full address if needed
+        // 1. Remove "Israel" or "ישראל"
+        loc = loc.replace(/,?\s*(ישראל|Israel)\s*$/i, "").trim();
+
+        // 2. If it contains commas, analyze the parts
+        if (loc.includes(",")) {
+          const parts = loc.split(",").map(p => p.trim());
+          // Take the last part that is NOT a number (postal code)
+          for (let i = parts.length - 1; i >= 0; i--) {
+            // Check if it's a number (postal code) or contains digits
+            if (isNaN(Number(parts[i])) && !/^\d+$/.test(parts[i])) {
+              loc = parts[i];
+              break;
+            }
+          }
+        }
+
+        return loc;
+      }).filter(Boolean))).sort();
+
+      return uniqueLocations;
+    },
+  });
+};
+
 // Hook to get category counts for display
 export const useCategoryCounts = () => {
   return useQuery({
@@ -87,19 +116,19 @@ export const useCategoryCounts = () => {
     queryFn: async () => {
       const categories = ["furniture", "electronics", "home", "books"] as const;
       const counts: Record<string, number> = {};
-      
+
       for (const category of categories) {
         const { count, error } = await supabase
           .from("products")
           .select("*", { count: "exact", head: true })
           .eq("status", "active")
           .eq("category", category);
-        
+
         if (!error) {
           counts[category] = count || 0;
         }
       }
-      
+
       return counts;
     },
     staleTime: 30000, // Cache for 30 seconds
@@ -132,6 +161,9 @@ interface CreateProductData {
   price: number;
   category: ProductCategory;
   location: string;
+  formatted_address: string;
+  latitude: number;
+  longitude: number;
   images: string[];
 }
 
@@ -147,6 +179,9 @@ export const useCreateProduct = () => {
         .from("products")
         .insert({
           ...productData,
+          formatted_address: productData.formatted_address,
+          latitude: productData.latitude,
+          longitude: productData.longitude,
           user_id: user.id,
         })
         .select()

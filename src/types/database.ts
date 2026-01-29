@@ -9,6 +9,9 @@ export interface Product {
   price: number;
   category: ProductCategory;
   location: string;
+  formatted_address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   status: ProductStatus;
   images: string[];
   created_at: string;

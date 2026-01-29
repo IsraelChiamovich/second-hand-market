@@ -81,22 +81,22 @@ const Footer = () => {
               support@secondhand.co.il
             </p>
             <div className="flex gap-3">
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-base"
                 aria-label="Facebook"
               >
                 <Facebook className="h-5 w-5" />
               </a>
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-base"
                 aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" />
               </a>
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-base"
                 aria-label="Twitter"
               >
@@ -112,7 +112,6 @@ const Footer = () => {
             © {new Date().getFullYear()} שוק יד שנייה. כל הזכויות שמורות.
           </p>
           <div className="flex items-center gap-6">
-            <SeedDataButton />
             <Link to="/login" className="text-muted-foreground hover:text-foreground transition-base text-sm">
               התחברות
             </Link>

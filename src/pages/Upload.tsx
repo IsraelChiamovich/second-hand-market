@@ -6,19 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload as UploadIcon, X, ImagePlus, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { uploadProductImage } from "@/lib/storage";
 import { toast } from "sonner";
 import type { ProductCategory } from "@/types/database";
+import { LocationPicker, LocationData } from "@/components/LocationPicker";
 
 const categories = [
   { value: "furniture", label: "ריהוט" },
@@ -27,35 +22,26 @@ const categories = [
   { value: "books", label: "ספרים" },
 ];
 
-const locations = [
-  { value: "תל אביב", label: "תל אביב" },
-  { value: "ירושלים", label: "ירושלים" },
-  { value: "חיפה", label: "חיפה" },
-  { value: "באר שבע", label: "באר שבע" },
-  { value: "נתניה", label: "נתניה" },
-  { value: "ראשון לציון", label: "ראשון לציון" },
-];
-
 const Upload = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const createProduct = useCreateProduct();
-  
+
   const [formData, setFormData] = useState({
     title: "",
     category: "" as ProductCategory | "",
     price: "",
     description: "",
-    location: "",
   });
-  
+
+  const [locationData, setLocationData] = useState<LocationData | null>(null);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreview, setImagePreview] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     if (images.length + files.length > 3) {
       toast.error("ניתן להעלות עד 3 תמונות");
       return;
@@ -64,7 +50,6 @@ const Upload = () => {
     const newImages = [...images, ...files].slice(0, 3);
     setImages(newImages);
 
-    // Create previews
     const previews = newImages.map((file) => URL.createObjectURL(file));
     setImagePreview(previews);
   };
@@ -90,7 +75,7 @@ const Upload = () => {
       return;
     }
 
-    if (!formData.location) {
+    if (!locationData || !locationData.formattedAddress) {
       toast.error("יש לבחור מיקום");
       return;
     }
@@ -103,18 +88,17 @@ const Upload = () => {
     setIsUploading(true);
 
     try {
-      // Upload images first
-      const imageUrls = await Promise.all(
-        images.map((file) => uploadProductImage(file, user.id))
-      );
+      const imageUrls = await Promise.all(images.map((file) => uploadProductImage(file, user.id)));
 
-      // Create product
       await createProduct.mutateAsync({
         title: formData.title,
         description: formData.description || undefined,
         price: parseFloat(formData.price),
         category: formData.category as ProductCategory,
-        location: formData.location,
+        location: locationData.city || locationData.formattedAddress, // Fallback to formatted address if city is missing
+        formatted_address: locationData.formattedAddress,
+        latitude: locationData.lat,
+        longitude: locationData.lng,
         images: imageUrls,
       });
 
@@ -144,9 +128,7 @@ const Upload = () => {
           <Card className="w-full max-w-md mx-4 text-center">
             <CardHeader>
               <CardTitle>יש להתחבר</CardTitle>
-              <CardDescription>
-                כדי לפרסם מודעה יש להתחבר לחשבון
-              </CardDescription>
+              <CardDescription>כדי לפרסם מודעה יש להתחבר לחשבון</CardDescription>
             </CardHeader>
             <CardContent>
               <Button onClick={() => navigate("/login")}>התחברות</Button>
@@ -164,9 +146,7 @@ const Upload = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">פרסום מודעה חדשה</CardTitle>
-              <CardDescription>
-                מלאו את הפרטים והעלו תמונות של הפריט למכירה
-              </CardDescription>
+              <CardDescription>מלאו את הפרטים והעלו תמונות של הפריט למכירה</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -175,19 +155,28 @@ const Upload = () => {
                   <Label>תמונות (עד 3)</Label>
                   <div className="grid grid-cols-3 gap-4">
                     {imagePreview.map((src, index) => (
-                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                        <img src={src} alt={`תמונה ${index + 1}`} className="w-full h-full object-cover" />
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg overflow-hidden bg-muted"
+                      >
+                        <img
+                          src={src}
+                          alt={`תמונה ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
                         <Button
                           type="button"
                           variant="destructive"
                           size="icon"
                           className="absolute top-2 left-2 h-7 w-7"
                           onClick={() => removeImage(index)}
+                          aria-label="הסר תמונה"
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
                     ))}
+
                     {images.length < 3 && (
                       <label className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors">
                         <ImagePlus className="h-8 w-8 text-muted-foreground" />
@@ -220,7 +209,9 @@ const Upload = () => {
                   <Label>קטגוריה</Label>
                   <Select
                     value={formData.category}
-                    onValueChange={(value) => setFormData({ ...formData, category: value as ProductCategory })}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, category: value as ProductCategory })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="בחרו קטגוריה" />
@@ -251,24 +242,11 @@ const Upload = () => {
                 </div>
 
                 {/* Location */}
-                <div className="space-y-2">
-                  <Label>מיקום</Label>
-                  <Select
-                    value={formData.location}
-                    onValueChange={(value) => setFormData({ ...formData, location: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="בחרו מיקום" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc.value} value={loc.value}>
-                          {loc.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <LocationPicker
+                  className="space-y-2"
+                  value={locationData || undefined}
+                  onChange={setLocationData}
+                />
 
                 {/* Description */}
                 <div className="space-y-2">
