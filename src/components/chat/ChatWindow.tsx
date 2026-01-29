@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowRight, Send, Loader2, Package } from "lucide-react";
 import { useMessages, useSendMessage, useMarkAsRead } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,7 +18,8 @@ const ChatWindow = ({ conversation, onBack }: ChatWindowProps) => {
   const sendMessage = useSendMessage();
   const markAsRead = useMarkAsRead();
   const [newMessage, setNewMessage] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Mark messages as read when opening conversation
@@ -29,12 +29,20 @@ const ChatWindow = ({ conversation, onBack }: ChatWindowProps) => {
     }
   }, [conversation.id, conversation.unread_count]);
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+  // Scroll to bottom function
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+  };
+
+  // Scroll to bottom when messages change or on initial load
+  useLayoutEffect(() => {
+    scrollToBottom();
   }, [messages]);
+
+  // Also scroll on component mount
+  useEffect(() => {
+    scrollToBottom();
+  }, []);
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;
@@ -128,7 +136,10 @@ const ChatWindow = ({ conversation, onBack }: ChatWindowProps) => {
       )}
 
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1 p-4">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4"
+      >
         {isLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -149,7 +160,9 @@ const ChatWindow = ({ conversation, onBack }: ChatWindowProps) => {
             <p className="text-sm">שלחו הודעה ראשונה!</p>
           </div>
         )}
-      </ScrollArea>
+        {/* Invisible element to scroll to */}
+        <div ref={messagesEndRef} />
+      </div>
 
       {/* Input */}
       <div className="p-4 border-t border-border bg-card">

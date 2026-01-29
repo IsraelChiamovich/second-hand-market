@@ -1,5 +1,4 @@
-import { Search, MapPin } from "lucide-react";
-import { useLocations } from "@/hooks/useProducts";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
+import { LocationSearch } from "./LocationSearch";
 
 interface SearchBarProps {
   onSearch?: (filters: SearchFilters) => void;
@@ -31,13 +31,11 @@ const categories = [
   { value: "books", label: "ספרים" },
 ];
 
-// locations removed - fetched dynamically
 const SearchBar = ({ onSearch, initialFilters, hideCategorySelect }: SearchBarProps) => {
-  const { data: locations } = useLocations();
   const [filters, setFilters] = useState<SearchFilters>({
     keyword: initialFilters?.keyword || "",
     category: initialFilters?.category || "all",
-    location: initialFilters?.location || "all",
+    location: initialFilters?.location || "",
   });
 
   // Update filters when initialFilters change
@@ -58,6 +56,10 @@ const SearchBar = ({ onSearch, initialFilters, hideCategorySelect }: SearchBarPr
     if (e.key === "Enter") {
       handleSearch();
     }
+  };
+
+  const handleLocationChange = (location: string) => {
+    setFilters(prev => ({ ...prev, location }));
   };
 
   return (
@@ -94,25 +96,13 @@ const SearchBar = ({ onSearch, initialFilters, hideCategorySelect }: SearchBarPr
           </Select>
         )}
 
-        <Select
+        {/* Location Search with autocomplete */}
+        <LocationSearch
           value={filters.location}
-          onValueChange={(value) => setFilters({ ...filters, location: value })}
-        >
-          <SelectTrigger className="w-full md:w-40 h-12">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <SelectValue placeholder="מיקום" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">כל הארץ</SelectItem>
-            {locations?.map((loc) => (
-              <SelectItem key={loc} value={loc}>
-                {loc}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={handleLocationChange}
+          placeholder="חפש מיקום..."
+          className="w-full md:w-48"
+        />
 
         {/* Search Button */}
         <Button onClick={handleSearch} className="h-12 px-8 text-base">
